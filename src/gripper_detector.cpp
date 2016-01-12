@@ -54,8 +54,10 @@ bool gripper_detector::configure()
     me.setMu2(0.5);
     me.setSampleStep(4);
     me.setNbTotalSample(250);
+
     tracker_->setMovingEdge(me);
     tracker_->setMaskBorder(5);
+
     vpKltOpencv klt_settings;
     klt_settings.setMaxFeatures(300);
     klt_settings.setWindowSize(5);
@@ -64,8 +66,11 @@ bool gripper_detector::configure()
     klt_settings.setHarrisFreeParameter(0.01);
     klt_settings.setBlockSize(3);
     klt_settings.setPyramidLevels(3);
+
     tracker_->setKltOpencv(klt_settings);
+
     cam_.initPersProjWithoutDistortion(839, 839, 325, 243);
+
     tracker_->setCameraParameters(cam_);
     tracker_->setAngleAppear( vpMath::rad(70) );
     tracker_->setAngleDisappear( vpMath::rad(80) );
@@ -74,7 +79,6 @@ bool gripper_detector::configure()
     tracker_->setClipping(tracker_->getClipping() | vpMbtPolygon::FOV_CLIPPING);
     tracker_->setOgreVisibilityTest(false);
     tracker_->setDisplayFeatures(true);
-//    tracker_->initClick(vp_image_gray_, "A.init", true);
 
     return true;
 }
@@ -92,67 +96,72 @@ void gripper_detector::update()
 
         vpDisplay::setTitle(vp_image_gray_,"title");
         vpDisplay::display(vp_image_gray_);
-        vpDisplay::flush(vp_image_gray_);
+//        vpDisplay::flush(vp_image_gray_);
 
         if ( tracking_ )
         {
-            try
-            {
+//            try
+//            {
                 tracker_->track(vp_image_gray_);
 
-                std::cout << "Trying to get pose..." << std::endl;
+//                std::cout << "Trying to get pose..." << std::endl;
                 geometry_msgs::Pose pose;
                 vpHomogeneousMatrix vp_pose = tracker_->getPose();
-                std::cout << "Done!" << std::endl;
+//                std::cout << "Done!" << std::endl;
                 pose = visp_bridge::toGeometryMsgsPose(vp_pose);
 
-                std::cout << "Trying to display tracked pose..." << std::endl;
+//                std::cout << "Trying to display tracked pose..." << std::endl;
                 tracker_->display(vp_image_gray_,vp_pose,cam_,vpColor::darkRed);
-                vpDisplay::display(vp_image_gray_);
-                vpDisplay::flush(vp_image_gray_);
+//                vpDisplay::display(vp_image_gray_);
+//                vpDisplay::flush(vp_image_gray_);
                 std::cout << "Displaying image of tracked marker" << std::endl;
-            }
-            catch ( std::exception e )
-            {
-                std::cout << "ERROR!" << std::endl;
-            }
+//            }
+//            catch ( std::exception e )
+//            {
+//                std::cout << "ERROR!" << std::endl;
+//            }
         }
         else
         {
             // Marker is still to be detected, so do that
             if ( detector_->detect(vp_image_gray_) )
             {
+                std::string message;
                 // Go through the detected markers, and get the correct one
                 for ( int i = 0; i < detector_->getNbObjects() ; ++i )
                 {
                     std::vector<vpImagePoint> bbox = detector_->getPolygon(i);
-                    vpDisplay::displayPolygon(vp_image_gray_,bbox,vpColor::allColors);
-                    vpDisplay::flush(vp_image_gray_);
-                    std::cout << "Point list of marker with message \"" << detector_->getMessage(i) << "\":" << std::endl;
+                    vpDisplay::displayPolygon(vp_image_gray_,bbox,vpColor::red);
+//                    vpDisplay::flush(vp_image_gray_);
+                    message = detector_->getMessage(i);
+                    std::cout << "Point list of marker with message \"" << message << "\":" << std::endl;
                     for(std::vector<vpImagePoint>::const_iterator it = bbox.begin(); it != bbox.end(); ++it)
                         std::cout << "\t" << *it << std::endl;
                     std::cout << std::endl;
 
-                    tracker_->loadModel(detector_->getMessage(0) + ".cao");
+                    tracker_->loadModel(message + ".cao");
 
                     std::vector<vpPoint> model_points;
                     vpPoint model_point;
+                    model_point.setWorldCoordinates(-0.03,-0.03, 0); // 3D coordinates of the points in the object frame
+                    model_points.push_back(model_point);
+                    model_point.setWorldCoordinates( 0.03,-0.03, 0); // 3D coordinates of the points in the object frame
+                    model_points.push_back(model_point);
                     model_point.setWorldCoordinates(-0.03, 0.03, 0); // 3D coordinates of the points in the object frame
                     model_points.push_back(model_point);
                     model_point.setWorldCoordinates( 0.03, 0.03, 0); // 3D coordinates of the points in the object frame
                     model_points.push_back(model_point);
-                    model_point.setWorldCoordinates( 0.03,-0.03, 0); // 3D coordinates of the points in the object frame
-                    model_points.push_back(model_point);
-                    model_point.setWorldCoordinates(-0.03,-0.03, 0); // 3D coordinates of the points in the object frame
-                    model_points.push_back(model_point);
 
                     std::cout << "Initializing tracker..." << std::endl;
-                    tracker_->initFromPoints(vp_image_gray_,bbox,model_points);
+//                    tracker_->initFromPoints(vp_image_gray_,message + ".init");
+//                    tracker_->initFromPoints(vp_image_gray_,bbox,model_points);
+                    tracker_->initClick(vp_image_gray_,message + ".init", false);
                     std::cout << "Tracker initialized" << std::endl;
-//                    tracking_ = true;
+                    tracking_ = true;
+                    break;
                 }
             }
-            vpDisplay::display(vp_image_gray_);
+//            vpDisplay::display(vp_image_gray_);
             vpDisplay::flush(vp_image_gray_);
         }
 
@@ -213,7 +222,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    ros::Rate r(6);
+    ros::Rate r(30);
     while (ros::ok())
     {
         gripperdetector.update();
