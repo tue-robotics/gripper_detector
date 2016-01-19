@@ -19,12 +19,15 @@
 #include <visp/vpDetectorDataMatrixCode.h>
 #include <visp/vpDetectorQRCode.h>
 
+// dot tracker
+#include <visp/vpDot2.h>
+
 gripper_detector::gripper_detector():
     nh_("~"),
     iter_(0),
     tracking_(false)
 {
-    client_.intialize("/sergio/top_kinect/rgbd");
+    client_.intialize("/top_kinect/rgbd");
     detector_ = new vpDetectorQRCode;
 //    detector_ = new vpDetectorDataMatrixCode;
     tracker_ = new vpMbEdgeKltTracker;
@@ -69,7 +72,9 @@ bool gripper_detector::configure()
 
     tracker_->setKltOpencv(klt_settings);
 
-    cam_.initPersProjWithoutDistortion(839, 839, 325, 243);
+//    cam_.initPersProjWithDistortion();
+//    cam_.initPersProjWithoutDistortion(839, 839, 325, 243);
+    cam_.initPersProjWithoutDistortion(538.6725257330964, 502.5794530135827, 320, 240);
 
     tracker_->setCameraParameters(cam_);
     tracker_->setAngleAppear( vpMath::rad(70) );
@@ -96,25 +101,24 @@ void gripper_detector::update()
 
         vpDisplay::setTitle(vp_image_gray_,"title");
         vpDisplay::display(vp_image_gray_);
-//        vpDisplay::flush(vp_image_gray_);
+        vpHomogeneousMatrix vp_pose;
+
 
         if ( tracking_ )
         {
 //            try
 //            {
                 tracker_->track(vp_image_gray_);
+                tracker_->getPose(vp_pose);
+                tracker_->getCameraParameters(cam_);
 
-//                std::cout << "Trying to get pose..." << std::endl;
-                geometry_msgs::Pose pose;
-                vpHomogeneousMatrix vp_pose = tracker_->getPose();
-//                std::cout << "Done!" << std::endl;
-                pose = visp_bridge::toGeometryMsgsPose(vp_pose);
+                geometry_msgs::Pose pose = visp_bridge::toGeometryMsgsPose(vp_pose);
 
-//                std::cout << "Trying to display tracked pose..." << std::endl;
-                tracker_->display(vp_image_gray_,vp_pose,cam_,vpColor::darkRed);
-//                vpDisplay::display(vp_image_gray_);
-//                vpDisplay::flush(vp_image_gray_);
-                std::cout << "Displaying image of tracked marker" << std::endl;
+                std::cout << "Pose: " << pose << std::endl;
+
+                tracker_->display(vp_image_gray_,vp_pose,cam_,vpColor::darkRed, 2);
+                vpDisplay::displayFrame(vp_image_gray_, vp_pose, cam_, 0.025, vpColor::none, 3);
+                vpDisplay::flush(vp_image_gray_);
 //            }
 //            catch ( std::exception e )
 //            {
@@ -123,6 +127,15 @@ void gripper_detector::update()
         }
         else
         {
+//            std::vector<vpPoint> model_points(4);
+//            model_points[0].setWorldCoordinates(-0.026, -0.026, 0);
+//            model_points[1].setWorldCoordinates( 0.026, -0.026, 0);
+//            model_points[2].setWorldCoordinates( 0.026,  0.026, 0);
+//            model_points[3].setWorldCoordinates(-0.026,  0.026, 0);
+
+//            tracker_->loadModel("left.cao");
+//            tracker_->initClick( vp_image_gray_,model_points);
+//            tracking_ = true;
             // Marker is still to be detected, so do that
             if ( detector_->detect(vp_image_gray_) )
             {
@@ -132,30 +145,34 @@ void gripper_detector::update()
                 {
                     std::vector<vpImagePoint> bbox = detector_->getPolygon(i);
                     vpDisplay::displayPolygon(vp_image_gray_,bbox,vpColor::red);
-//                    vpDisplay::flush(vp_image_gray_);
+
                     message = detector_->getMessage(i);
                     std::cout << "Point list of marker with message \"" << message << "\":" << std::endl;
-                    for(std::vector<vpImagePoint>::const_iterator it = bbox.begin(); it != bbox.end(); ++it)
-                        std::cout << "\t" << *it << std::endl;
+
+
+//                    std::vector<vpDot2> dot(4);
+
+                    for(unsigned int i = 0; i < bbox.size(); ++i)
+                    {
+//                        dot[i].initTracking(vp_image_gray_, bbox[i]);
+                        std::cout << "\t" << bbox[i] << std::endl;
+                    }
                     std::cout << std::endl;
 
                     tracker_->loadModel(message + ".cao");
 
-                    std::vector<vpPoint> model_points;
-                    vpPoint model_point;
-                    model_point.setWorldCoordinates(-0.03,-0.03, 0); // 3D coordinates of the points in the object frame
-                    model_points.push_back(model_point);
-                    model_point.setWorldCoordinates( 0.03,-0.03, 0); // 3D coordinates of the points in the object frame
-                    model_points.push_back(model_point);
-                    model_point.setWorldCoordinates(-0.03, 0.03, 0); // 3D coordinates of the points in the object frame
-                    model_points.push_back(model_point);
-                    model_point.setWorldCoordinates( 0.03, 0.03, 0); // 3D coordinates of the points in the object frame
-                    model_points.push_back(model_point);
+                    std::vector<vpPoint> model_points(4);
+                    model_points[0].setWorldCoordinates(-0.03, -0.03, 0);
+                    model_points[1].setWorldCoordinates( 0.03, -0.03, 0);
+                    model_points[2].setWorldCoordinates( 0.03,  0.03, 0);
+                    model_points[3].setWorldCoordinates(-0.03,  0.03, 0);
+
+                    std::cout << "model_points: " << std::endl;
+                    for (std::vector<vpPoint>::iterator it = model_points.begin(); it!=model_points.end(); ++it )
+                        std::cout << it->getWorldCoordinates() << std::endl << std::endl;
 
                     std::cout << "Initializing tracker..." << std::endl;
-//                    tracker_->initFromPoints(vp_image_gray_,message + ".init");
-//                    tracker_->initFromPoints(vp_image_gray_,bbox,model_points);
-                    tracker_->initClick(vp_image_gray_,message + ".init", false);
+                    tracker_->initFromPoints( vp_image_gray_, bbox, model_points );
                     std::cout << "Tracker initialized" << std::endl;
                     tracking_ = true;
                     break;
