@@ -27,7 +27,7 @@ gripper_detector::gripper_detector():
     iter_(0),
     tracking_(false)
 {
-    client_.intialize("/top_kinect/rgbd");
+    client_.intialize("top_kinect/rgbd");
     detector_ = new vpDetectorQRCode;
 //    detector_ = new vpDetectorDataMatrixCode;
     tracker_ = new vpMbEdgeKltTracker;
