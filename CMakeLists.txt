@@ -1,17 +1,20 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(gripper_detector)
 
+SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
+
 find_package(catkin REQUIRED COMPONENTS
 roscpp
 cv_bridge
 rgbd
 tf
 visp_bridge
+aruco
 )
 
 # find_package(Boost REQUIRED COMPONENTS system program_options)
 # find_package(PCL REQUIRED)
-find_package(VISP REQUIRED)
+# find_package(VISP REQUIRED)
 find_package(OpenCV REQUIRED)
 
 # ------------------------------------------------------------------------------------------------
@@ -57,7 +60,6 @@ catkin_package(
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
-    ${VISP_INCLUDE_DIRS}
 )
 
 #Library gathering libauto_tracker used by all nodes.
@@ -93,6 +95,6 @@ add_executable( gripper_detector
     src/gripper_detector.cpp
     ${HEADER_FILES}
 )
-target_link_libraries(gripper_detector ${catkin_LIBRARIES} ${VISP_LIBRARIES})
+target_link_libraries(gripper_detector ${catkin_LIBRARIES})
 
 
