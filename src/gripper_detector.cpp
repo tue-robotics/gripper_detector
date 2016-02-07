@@ -60,14 +60,14 @@ void gripper_detector::update()
     {
         cv::Mat showImage(image.getRGBImage());
 
-        vector<aruco::Marker> markers;
+        std::vector<aruco::Marker> markers;
 
         // Detect the AR markers!
         detector_.detect(image.getRGBImage(), markers, cam_, 0.025);
 
         for ( unsigned int i=0; i < markers.size(); i++ )
         {
-            std::cout << markers[i] << endl;
+            std::cout << markers[i] << std::endl ;
             markers[i].draw(showImage,cv::Scalar(0,0,255),2);
         }
         cv::imshow("in",showImage);
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    ros::Rate r(30);
+    ros::Rate r(5);
     while (ros::ok())
     {
         gripperdetector.update();
