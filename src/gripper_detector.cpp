@@ -22,14 +22,34 @@ gripper_detector::~gripper_detector()
 
 bool gripper_detector::configure()
 {
-    // Set if display is on or off and if features should be displayed
-
     // TODO: make configurable
-    // TODO: set tracker model
-
     // TODO: Read marker messages from config and relate them to their grippers
 
-    return true;
+    double fx, fy, cx, cy, d1, d2;
+    fx = 538.6725257330964;
+    fy = 502.5794530135827;
+    cx = 313.68782938;
+    cy = 259.01834898;
+    d1 = 0.18126525;
+    d2 = -0.39866885;
+
+//    cam_.CamSize.width = 1280;
+//    cam_.CamSize.height = 1024;
+
+    cv::Size size = (cv::Size_<double>(1280,1024));
+
+    cv::Mat C = (cv::Mat_<double>(3,3) << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0);
+    cv::Mat D = (cv::Mat_<double>(5,1) << d1, d2, 0.0, 0.0, 0.0);
+
+    cam_.setParams(C,D,size);
+
+    if ( cam_.isValid() )
+        return true;
+    else
+    {
+        std::cout << "Camera parameters not valid!" << std::endl;
+        return false;
+    }
 }
 
 void gripper_detector::update()
@@ -39,21 +59,11 @@ void gripper_detector::update()
     if (client_.nextImage(image))
     {
         cv::Mat showImage(image.getRGBImage());
-        aruco::CameraParameters cam;
-        cam.readFromFile("/home/rokus/camera.yml");
-        cam.CamSize.width = 1280;
-        cam.CamSize.height = 1024;
-
-//        double fx, fy, cx, cy;
-//        fx = 538.6725257330964;
-//        fy = 502.5794530135827;
-//        cx = 313.68782938;
-//        cy = 259.01834898;
 
         vector<aruco::Marker> markers;
 
         // Detect the AR markers!
-        detector_.detect(image.getRGBImage(), markers, cam, 0.025);
+        detector_.detect(image.getRGBImage(), markers, cam_, 0.025);
 
         for ( unsigned int i=0; i < markers.size(); i++ )
         {

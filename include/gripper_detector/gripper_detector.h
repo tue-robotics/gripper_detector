@@ -21,6 +21,7 @@ public:
     rgbd::Client client_;
 
     aruco::MarkerDetector detector_;
+    aruco::CameraParameters cam_;
 
     bool configure();
     void update();
