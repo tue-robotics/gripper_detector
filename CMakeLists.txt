@@ -8,7 +8,6 @@ roscpp
 cv_bridge
 rgbd
 tf
-visp_bridge
 aruco
 )
 
