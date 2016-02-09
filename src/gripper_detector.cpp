@@ -7,6 +7,40 @@
 // arUco
 #include <aruco/aruco.h>
 
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
+
+
+tf::Transform arucoMarker2Tf(const aruco::Marker& marker)
+{
+    cv::Mat rot(3, 3, CV_32FC1);
+        cv::Rodrigues(marker.Rvec, rot);
+        cv::Mat tran = marker.Tvec;
+
+        cv::Mat rotate_to_ros(3, 3, CV_32FC1);
+        // -1 0 0
+        // 0 0 1
+        // 0 1 0
+        rotate_to_ros.at<float>(0,0) = -1.0;
+        rotate_to_ros.at<float>(0,1) = 0.0;
+        rotate_to_ros.at<float>(0,2) = 0.0;
+        rotate_to_ros.at<float>(1,0) = 0.0;
+        rotate_to_ros.at<float>(1,1) = 0.0;
+        rotate_to_ros.at<float>(1,2) = 1.0;
+        rotate_to_ros.at<float>(2,0) = 0.0;
+        rotate_to_ros.at<float>(2,1) = 1.0;
+        rotate_to_ros.at<float>(2,2) = 0.0;
+        rot = rot*rotate_to_ros.t();
+
+        tf::Matrix3x3 tf_rot(rot.at<float>(0,0), rot.at<float>(0,1), rot.at<float>(0,2),
+                           rot.at<float>(1,0), rot.at<float>(1,1), rot.at<float>(1,2),
+                           rot.at<float>(2,0), rot.at<float>(2,1), rot.at<float>(2,2));
+
+        tf::Vector3 tf_orig(tran.at<float>(0,0), tran.at<float>(1,0), tran.at<float>(2,0));
+
+        return tf::Transform(tf_rot, tf_orig);
+}
+
 
 gripper_detector::gripper_detector():
     nh_("~"),
@@ -23,7 +57,10 @@ gripper_detector::~gripper_detector()
 bool gripper_detector::configure()
 {
     // TODO: make configurable
+    base_frame_ = "/map/";
+
     // TODO: Read marker messages from config and relate them to their grippers
+    // TODO: Use actual kinect camera parameters!
 
     double fx, fy, cx, cy, d1, d2;
     fx = 538.6725257330964;
@@ -35,10 +72,12 @@ bool gripper_detector::configure()
     d1 = 0.18126525;
     d2 = -0.39866885;
 
-//    cam_.CamSize.width = 1280;
-//    cam_.CamSize.height = 1024;
+    rgbd::Image image;
 
-    cv::Size size = (cv::Size_<double>(1280,1024));
+    while(!client_.nextImage(image))
+        cv::waitKey(10);
+
+    cv::Size size(image.getRGBImage().cols,image.getRGBImage().rows);
 
     cv::Mat C = (cv::Mat_<double>(3,3) << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0);
     cv::Mat D = (cv::Mat_<double>(5,1) << d1, d2, 0.0, 0.0, 0.0);
@@ -46,7 +85,10 @@ bool gripper_detector::configure()
     cam_.setParams(C,D,size);
 
     if ( cam_.isValid() )
+    {
+        std::cout << "Initialized!" << std::endl;
         return true;
+    }
     else
     {
         std::cout << "Camera parameters not valid!" << std::endl;
@@ -67,9 +109,15 @@ void gripper_detector::update()
         // Detect the AR markers!
         detector_.detect(image.getRGBImage(), markers, cam_, 0.048);
 
+//        tf::Transform transform;
+
         for ( unsigned int i=0; i < markers.size(); i++ )
         {
-            std::cout << markers[i] << std::endl ;
+//            transform = arucoMarker2Tf(markers[i]);
+//            geometry_msgs::TransformStamped tf_stamped;
+//            tf_stamped.child_frame_id(stdmarkers[i].id);
+            std::cout << markers[i].id << std::endl;
+//            broadcaster_.sendTransform();
             markers[i].draw(showImage,cv::Scalar(0,0,255),2);
         }
         cv::imshow("in",showImage);

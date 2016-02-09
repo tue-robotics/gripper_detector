@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(gripper_detector)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
+#SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
 
 find_package(catkin REQUIRED COMPONENTS
 roscpp
