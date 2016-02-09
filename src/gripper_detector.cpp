@@ -28,8 +28,10 @@ bool gripper_detector::configure()
     double fx, fy, cx, cy, d1, d2;
     fx = 538.6725257330964;
     fy = 502.5794530135827;
-    cx = 313.68782938;
-    cy = 259.01834898;
+//    cx = 313.68782938;
+//    cy = 259.01834898;
+    cx = 640;
+    cy = 512;
     d1 = 0.18126525;
     d2 = -0.39866885;
 
@@ -63,7 +65,7 @@ void gripper_detector::update()
         std::vector<aruco::Marker> markers;
 
         // Detect the AR markers!
-        detector_.detect(image.getRGBImage(), markers, cam_, 0.025);
+        detector_.detect(image.getRGBImage(), markers, cam_, 0.048);
 
         for ( unsigned int i=0; i < markers.size(); i++ )
         {
@@ -93,7 +95,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    ros::Rate r(5);
+    ros::Rate r(10);
     while (ros::ok())
     {
         gripperdetector.update();
