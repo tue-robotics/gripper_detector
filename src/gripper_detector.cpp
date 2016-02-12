@@ -72,8 +72,8 @@ void gripper_detector::update()
             std::cout << markers[i] << std::endl ;
             markers[i].draw(showImage,cv::Scalar(0,0,255),2);
         }
-        cv::imshow("in",showImage);
-        cv::waitKey(1);
+//        cv::imshow("in",showImage);
+//        cv::waitKey(1);
     }
     else
         std::cout << "No rgbd image" << std::endl;
