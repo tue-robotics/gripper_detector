@@ -9,6 +9,8 @@ cv_bridge
 rgbd
 tf
 aruco
+geometry_msgs
+message_generation
 )
 
 # find_package(Boost REQUIRED COMPONENTS system program_options)
@@ -28,18 +30,16 @@ find_package(OpenCV REQUIRED)
 # )
 
 # Generate services
-# add_service_files(
-#    FILES
-#    service1.srv
-#    ...
-# )
+add_service_files(
+   FILES
+   DetectGripper.srv
+)
 
 # Generate added messages and services with any dependencies listed here
-# generate_messages(
-#    DEPENDENCIES
-#    geometry_msgs
-#    ...
-# )
+generate_messages(
+   DEPENDENCIES
+   geometry_msgs
+)
 
 # ------------------------------------------------------------------------------------------------
 #                                          CATKIN EXPORT
@@ -48,7 +48,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES bla
-#  CATKIN_DEPENDS other_catkin_pkg
+CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 

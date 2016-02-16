@@ -1,5 +1,8 @@
 #include "gripper_detector/gripper_detector.h"
 
+// srvs
+#include <gripper_detector/DetectGripper.h>
+
 // rgbd
 #include <rgbd/Client.h>
 #include <rgbd/View.h>
@@ -42,22 +45,25 @@ tf::Transform arucoMarker2Tf(const aruco::Marker& marker)
 }
 
 
-gripper_detector::gripper_detector():
-    nh_("~"),
-    iter_(0),
-    tracking_(false)
+GripperDetector::GripperDetector():
+    nh_("~")
 {
     client_.intialize("rgbd");
 }
 
-gripper_detector::~gripper_detector()
+GripperDetector::~GripperDetector()
 {
 }
 
-bool gripper_detector::configure()
+bool GripperDetector::configure()
 {
     // TODO: make configurable
     base_frame_ = "/map/";
+    name_prefix_ = "/amigo/gripper_marker_";
+    marker_frames_[985] = name_prefix_ + "right";
+    marker_frames_[177] = name_prefix_ + "left";
+    marker_size_ = 0.042;
+    max_iter_ = 10;
 
     // TODO: Read marker messages from config and relate them to their grippers
     // TODO: Use actual kinect camera parameters!
@@ -75,7 +81,10 @@ bool gripper_detector::configure()
     rgbd::Image image;
 
     while(!client_.nextImage(image))
+    {
+        std::cout << "Waiting for rgbd to initialize" << std::endl;
         cv::waitKey(10);
+    }
 
     cv::Size size(image.getRGBImage().cols,image.getRGBImage().rows);
 
@@ -96,61 +105,75 @@ bool gripper_detector::configure()
     }
 }
 
-void gripper_detector::update()
+bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &req,
+                                    gripper_detector::DetectGripper::Response &res)
 {
+    bool found = false;
+    unsigned int iter = 0;
+
     rgbd::Image image;
 
-    if (client_.nextImage(image))
+    while (!found && iter < max_iter_)
     {
-        cv::Mat showImage(image.getRGBImage());
 
-        std::vector<aruco::Marker> markers;
-
-        // Detect the AR markers!
-        detector_.detect(image.getRGBImage(), markers, cam_, 0.048);
-
-//        tf::Transform transform;
-
-        for ( unsigned int i=0; i < markers.size(); i++ )
+        if (client_.nextImage(image))
         {
-//            transform = arucoMarker2Tf(markers[i]);
-//            geometry_msgs::TransformStamped tf_stamped;
-//            tf_stamped.child_frame_id(stdmarkers[i].id);
-            std::cout << markers[i].id << std::endl;
-//            broadcaster_.sendTransform();
-            markers[i].draw(showImage,cv::Scalar(0,0,255),2);
+            cv::Mat showImage(image.getRGBImage());
+
+            std::vector<aruco::Marker> markers;
+
+            // Detect the AR markers!
+            detector_.detect(image.getRGBImage(), markers, cam_, marker_size_);
+
+            tf::StampedTransform transform;
+
+            for ( std::vector<aruco::Marker>::iterator it = markers.begin(); it != markers.end(); ++it )
+            {
+                if ( name_prefix_ + req.arm != marker_frames_[it->id] )
+                {
+                    continue;
+                }
+
+                transform.setData(arucoMarker2Tf(*it));
+                transform.frame_id_ = base_frame_;
+                transform.child_frame_id_ = marker_frames_[it->id];
+
+                std::cout << it->id << std::endl;
+
+                broadcaster_.sendTransform(transform);
+                it->draw(showImage,cv::Scalar(0,0,255),2);
+                found = true;
+            }
+    //        cv::imshow("in",showImage);
+    //        cv::waitKey(1);
         }
-//        cv::imshow("in",showImage);
-//        cv::waitKey(1);
+        else
+        {
+            std::cout << "No rgbd image" << std::endl;
+            return false;
+        }
+
+        iter++;
     }
-    else
-        std::cout << "No rgbd image" << std::endl;
 }
 
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "gripper_detector");
+    ros::NodeHandle n;
 
-    std::cout << "Initializing gripper detector..." << std::endl;
-    gripper_detector gripperdetector;
+    GripperDetector gripperDetector;
 
-    aruco::MarkerDetector detector;
-
-    if ( !gripperdetector.configure() )
+    if ( !gripperDetector.configure() )
     {
         std::cout << "Something went wrong configuring the gripper detector!" << std::endl;
         return 1;
     }
 
-    ros::Rate r(10);
-    while (ros::ok())
-    {
-        gripperdetector.update();
-        ros::spinOnce();
-        r.sleep();
-    }
-
+//    ros::ServiceServer service = n.advertiseService("detect_gripper",gripperDetector.find_gripper());
+    ROS_INFO("Ready to detect gripper.");
+    ros::spin();
 
     return 0;
 }
