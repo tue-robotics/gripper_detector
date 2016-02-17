@@ -1,0 +1,6 @@
+# Arm name string: 'left' or 'right'
+string arm
+---
+bool succeeded
+geometry_msgs/PoseStamped arm_pose
+
