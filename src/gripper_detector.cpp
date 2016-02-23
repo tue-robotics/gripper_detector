@@ -162,7 +162,6 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
         else
         {
             ROS_WARN("No rgbd image");
-            return false;
         }
 
         iter++;
