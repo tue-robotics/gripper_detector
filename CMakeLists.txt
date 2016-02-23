@@ -5,7 +5,6 @@ project(gripper_detector)
 
 find_package(catkin REQUIRED COMPONENTS
 roscpp
-cv_bridge
 rgbd
 tf
 aruco

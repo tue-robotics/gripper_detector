@@ -2,5 +2,5 @@
 string arm
 ---
 bool succeeded
-geometry_msgs/PoseStamped arm_pose
+geometry_msgs/PoseStamped gripper_pose
 

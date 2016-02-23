@@ -3,7 +3,6 @@
 
 #include <rgbd/Client.h>
 #include <aruco/markerdetector.h>
-#include <tf/transform_broadcaster.h>
 #include <gripper_detector/DetectGripper.h>
 
 // TODO: Fixed a build error by hacking in /usr/include/SbBasic.h: added #include <Inventor/C/errors/debugerror.h>
@@ -23,7 +22,6 @@ class GripperDetector
     aruco::MarkerDetector detector_;
     aruco::CameraParameters cam_;
 
-    tf::TransformBroadcaster broadcaster_;
     std::string base_frame_;
 
 public:
