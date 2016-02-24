@@ -72,8 +72,8 @@ bool GripperDetector::configure()
     // TODO: make configurable
     base_frame_ = "/map/";
     name_prefix_ = "/amigo/gripper_marker_";
-    marker_frames_[985] = name_prefix_ + "right";
-    marker_frames_[177] = name_prefix_ + "left";
+    marker_frames_[985] = "right";
+    marker_frames_[177] = "left";
     marker_size_ = 0.042;
     max_iter_ = 1;
 
@@ -118,29 +118,30 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
 
     while (!res.succeeded && iter < max_iter_)
     {
-
         if (client_.nextImage(image))
         {
             std::vector<aruco::Marker> markers;
 
             // Detect the AR markers!
-            ROS_DEBUG("detecting markers");
+            ROS_WARN("detecting markers");
             detector_.detect(image.getRGBImage(), markers, cam_, marker_size_);
-            ROS_DEBUG("%lu markers detected",markers.size());
+            ROS_WARN("%lu markers detected",markers.size());
 
             for ( std::vector<aruco::Marker>::iterator it = markers.begin(); it != markers.end(); ++it )
             {
-                ROS_DEBUG("Marker found with ID: %i",it->id);
+                ROS_WARN("Marker found with ID: %i",it->id);
 
                 // If the detected marker is not one of the gripper markers, continue
                 if ( marker_frames_.find(it->id) == marker_frames_.end() )
                 {
+                    ROS_WARN("That's no moon");
                     continue;
                 }
 
                 // If the detected marker is not requested, continue
                 if ( marker_frames_[it->id] != req.arm )
                 {
+                    ROS_WARN("These are not the droids you're looking for");
                     continue;
                 }
 
@@ -152,7 +153,7 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
                 res.succeeded = true;
                 res.gripper_pose = pose;
 
-                ROS_DEBUG("Gripper found");
+                ROS_WARN("Gripper found");
                 return true;
             }
         }
