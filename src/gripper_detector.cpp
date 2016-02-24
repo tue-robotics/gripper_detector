@@ -112,7 +112,6 @@ bool GripperDetector::configure()
 bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &req,
                                    gripper_detector::DetectGripper::Response &res)
 {
-    bool found = false;
     unsigned int iter = 0;
 
     rgbd::Image image;
@@ -122,14 +121,12 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
 
         if (client_.nextImage(image))
         {
-            cv::Mat showImage(image.getRGBImage());
-
             std::vector<aruco::Marker> markers;
 
             // Detect the AR markers!
+            ROS_DEBUG("detecting markers");
             detector_.detect(image.getRGBImage(), markers, cam_, marker_size_);
-
-            tf::StampedTransform transform;
+            ROS_DEBUG("%lu markers detected",markers.size());
 
             for ( std::vector<aruco::Marker>::iterator it = markers.begin(); it != markers.end(); ++it )
             {
