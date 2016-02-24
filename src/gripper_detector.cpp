@@ -107,6 +107,9 @@ bool GripperDetector::configure()
         ROS_ERROR("Camera parameters not valid!");
         return false;
     }
+
+    ros::NodeHandle n;
+    pose_pub_ = n.advertise<geometry_msgs::PoseStamped>("gripper_pose", 100);
 }
 
 bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &req,
@@ -152,6 +155,8 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
 
                 res.succeeded = true;
                 res.gripper_pose = pose;
+
+                pose_pub_.publish(pose);
 
                 ROS_WARN("Gripper found");
                 return true;

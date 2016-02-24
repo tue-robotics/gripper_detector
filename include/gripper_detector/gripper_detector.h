@@ -24,6 +24,8 @@ class GripperDetector
 
     std::string base_frame_;
 
+    ros::Publisher pose_pub_;
+
 public:
     GripperDetector();
     ~GripperDetector();
