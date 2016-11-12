@@ -99,12 +99,12 @@ bool GripperDetector::configure()
 
     if ( cam_.isValid() )
     {
-        ROS_INFO("Initialized!");
+        ROS_INFO_STREAM("Gripper Detector: Initialized!");
         return true;
     }
     else
     {
-        ROS_ERROR("Camera parameters not valid!");
+        ROS_ERROR_STREAM("Gripper Detector: Camera parameters not valid!");
         return false;
     }
 
@@ -126,25 +126,25 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
             std::vector<aruco::Marker> markers;
 
             // Detect the AR markers!
-            ROS_WARN("detecting markers");
+            ROS_INFO_STREAM("Gripper Detector: detecting markers");
             detector_.detect(image.getRGBImage(), markers, cam_, marker_size_);
-            ROS_WARN("%lu markers detected",markers.size());
+            ROS_DEBUG_STREAM("Gripper Detector: " << markers.size() << " markers detected");
 
             for ( std::vector<aruco::Marker>::iterator it = markers.begin(); it != markers.end(); ++it )
             {
-                ROS_WARN("Marker found with ID: %i",it->id);
+                ROS_DEBUG_STREAM("Gripper Detector: Marker found with ID: " << it->id);
 
                 // If the detected marker is not one of the gripper markers, continue
                 if ( marker_frames_.find(it->id) == marker_frames_.end() )
                 {
-                    ROS_WARN("That's no moon");
+                    ROS_WARN_STREAM("Gripper Detector: Found an AR marker that is not a gripper");
                     continue;
                 }
 
                 // If the detected marker is not requested, continue
                 if ( marker_frames_[it->id] != req.arm )
                 {
-                    ROS_WARN("These are not the droids you're looking for");
+                    ROS_INFO_STREAM("Gripper Detector: Found a gripper that was not requested");
                     continue;
                 }
 
@@ -158,19 +158,19 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
 
                 pose_pub_.publish(pose);
 
-                ROS_WARN("Gripper found");
+                ROS_INFO_STREAM("Gripper Detector: Gripper found");
                 return true;
             }
         }
         else
         {
-            ROS_WARN("No rgbd image");
+            ROS_WARN_STREAM("No rgbd image");
         }
 
         iter++;
     }
 
-    ROS_WARN("Gripper not found");
+    ROS_WARN_STREAM("Gripper not found");
     return false;
 }
 
@@ -184,12 +184,12 @@ int main(int argc, char **argv)
 
     if ( !gripperDetector.configure() )
     {
-        ROS_ERROR("Something went wrong configuring the gripper detector!");
+        ROS_ERROR_STREAM("Something went wrong configuring the gripper detector!");
         return 1;
     }
 
     ros::ServiceServer service = n.advertiseService("detect_gripper",&GripperDetector::find_gripper, &gripperDetector);
-    ROS_INFO("Ready to detect gripper.");
+    ROS_INFO_STREAM("Ready to detect gripper.");
     ros::spin();
 
     return 0;
