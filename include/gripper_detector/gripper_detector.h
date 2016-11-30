@@ -31,7 +31,8 @@ public:
     ~GripperDetector();
 
     bool configure();
-    bool find_gripper(gripper_detector::DetectGripper::Request  &req,
+    bool detectMarkers(geometry_msgs::PoseStamped& gripper_pose, std::string& requested_arm);
+    bool detectGripperCallback(gripper_detector::DetectGripper::Request  &req,
                       gripper_detector::DetectGripper::Response &res);
 };
 

@@ -112,14 +112,13 @@ bool GripperDetector::configure()
     pose_pub_ = n.advertise<geometry_msgs::PoseStamped>("gripper_pose", 100);
 }
 
-bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &req,
-                                   gripper_detector::DetectGripper::Response &res)
+bool GripperDetector::detectMarkers(geometry_msgs::PoseStamped& gripper_pose, std::string& requested_arm)
 {
     unsigned int iter = 0;
 
     rgbd::Image image;
 
-    while (!res.succeeded && iter < max_iter_)
+    while (iter < max_iter_)
     {
         if (client_.nextImage(image))
         {
@@ -128,11 +127,11 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
             // Detect the AR markers!
             ROS_INFO_STREAM("Gripper Detector: detecting markers");
             detector_.detect(image.getRGBImage(), markers, cam_, marker_size_);
-            ROS_DEBUG_STREAM("Gripper Detector: " << markers.size() << " markers detected");
+            ROS_INFO_STREAM("Gripper Detector: " << markers.size() << " markers detected");
 
             for ( std::vector<aruco::Marker>::iterator it = markers.begin(); it != markers.end(); ++it )
             {
-                ROS_DEBUG_STREAM("Gripper Detector: Marker found with ID: " << it->id);
+                ROS_INFO_STREAM("Gripper Detector: Marker found with ID: " << it->id);
 
                 // If the detected marker is not one of the gripper markers, continue
                 if ( marker_frames_.find(it->id) == marker_frames_.end() )
@@ -142,21 +141,16 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
                 }
 
                 // If the detected marker is not requested, continue
-                if ( marker_frames_[it->id] != req.arm )
+                if ( marker_frames_[it->id] != requested_arm )
                 {
                     ROS_INFO_STREAM("Gripper Detector: Found a gripper that was not requested");
                     continue;
                 }
 
-                geometry_msgs::PoseStamped pose = arucoMarker2GeometryMsg(*it);
+                gripper_pose = arucoMarker2GeometryMsg(*it);
 
-                pose.header.frame_id = image.getFrameId();
-                pose.header.stamp = ros::Time(image.getTimestamp());
-
-                res.succeeded = true;
-                res.gripper_pose = pose;
-
-                pose_pub_.publish(pose);
+                gripper_pose.header.frame_id = image.getFrameId();
+                gripper_pose.header.stamp = ros::Time(image.getTimestamp());
 
                 ROS_INFO_STREAM("Gripper Detector: Gripper found");
                 return true;
@@ -174,6 +168,16 @@ bool GripperDetector::find_gripper(gripper_detector::DetectGripper::Request  &re
     return false;
 }
 
+bool GripperDetector::detectGripperCallback(gripper_detector::DetectGripper::Request  &req,
+                                            gripper_detector::DetectGripper::Response &res)
+{
+    res.succeeded = detectMarkers(res.gripper_pose, req.arm);
+
+    pose_pub_.publish(res.gripper_pose);
+
+    return res.succeeded;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -188,9 +192,21 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    ros::ServiceServer service = n.advertiseService("detect_gripper",&GripperDetector::find_gripper, &gripperDetector);
-    ROS_INFO_STREAM("Ready to detect gripper.");
-    ros::spin();
+//    ros::ServiceServer service = n.advertiseService("detect_gripper",
+//                                                    &GripperDetector::detectGripperCallback,
+//                                                    &gripperDetector);
+
+//    ROS_INFO_STREAM("Ready to detect gripper.");
+//    ros::spin();
+
+    while ( !ros::isShuttingDown() )
+    {
+      geometry_msgs::PoseStamped pose_msg;
+      std::string arm("right");
+      gripperDetector.detectMarkers(pose_msg, arm);
+      ros::spinOnce();
+      ros::Duration(0.1).sleep();
+    }
 
     return 0;
 }
